@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+#include <sys/wait.h>
 
 //limits
 #define MAX_TOKENS 100
@@ -15,11 +16,13 @@ size_t MAX_LINE_LEN = 10000;
 #define EXIT_STR "exit"
 #define EXIT_CMD 0
 #define UNKNOWN_CMD 99
+#define VALID_CMD 1
 
 
 FILE *fp; // file struct for stdin
 char **tokens;
 char *line;
+int token_count; // number of tokens in active command
 
 void initialize()
 {
@@ -37,7 +40,7 @@ void initialize()
 
 void tokenize (char * string)
 {
-	int token_count = 0;
+	token_count = 0;
 	int size = MAX_TOKENS;
 	char *this_token;
 
@@ -47,7 +50,7 @@ void tokenize (char * string)
 
 		tokens[token_count] = this_token;
 
-		printf("Token %d: %s\n", token_count, tokens[token_count]);
+		//printf("Token %d: %s\n", token_count, tokens[token_count]);
 
 		token_count++;
 
@@ -58,6 +61,9 @@ void tokenize (char * string)
 			assert ( (tokens = realloc(tokens, sizeof(char*) * size)) != NULL);
 		}
 	}
+
+    tokens[token_count] = NULL;
+    //token_count++;
 }
 
 void read_command() 
@@ -66,15 +72,55 @@ void read_command()
 	// getline will reallocate if input exceeds max length
 	assert( getline(&line, &MAX_LINE_LEN, fp) > -1); 
 
-	printf("Shell read this line: %s\n", line);
+	//printf("Shell read this line: %s\n", line);
 
 	tokenize(line);
 }
 
+int handle_command() {
+
+    pid_t pid;
+    int status;
+    int wait_ret;
+
+    pid = fork();
+    if (pid < 0) {
+        perror("fork failed");
+        exit(1);
+    }
+
+    if (pid == 0) {
+        //printf("Child: %s\n", tokens[0]);
+        int exec_ret = execvp(tokens[0], tokens);
+        if (exec_ret < 0) {
+            printf("exec failed\n");
+            exit(1);
+        }
+        exit(99);
+    }
+
+    if (pid > 0) {
+        //printf("Parent: %s\n", tokens[0]);
+        wait_ret = waitpid(pid, &status, 0);
+
+        if (wait_ret < 0) {
+            printf("waitpid failed\n");
+            exit(2);
+        }
+
+    }
+
+    return 1;
+
+}
+
 int run_command() {
 
-	if (strcmp( tokens[0], EXIT_STR ) == 0)
+	if (strcmp( tokens[0], EXIT_STR ) == 0) {
 		return EXIT_CMD;
+    } else {
+        return handle_command();
+    }
 
 	return UNKNOWN_CMD;
 }
