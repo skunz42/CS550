@@ -82,6 +82,11 @@ int handle_command() {
     pid_t pid;
     int status;
     int wait_ret;
+    unsigned char is_background = 0;
+
+    if (tokens[token_count-1][0] == '&') {
+        is_background = 1;
+    }
 
     pid = fork();
     if (pid < 0) {
@@ -101,11 +106,14 @@ int handle_command() {
 
     if (pid > 0) {
         //printf("Parent: %s\n", tokens[0]);
-        wait_ret = waitpid(pid, &status, 0);
+        if (!is_background) {
+            printf("In fg\n");
+            wait_ret = waitpid(pid, &status, 0);
 
-        if (wait_ret < 0) {
-            printf("waitpid failed\n");
-            exit(2);
+            if (wait_ret < 0) {
+                printf("waitpid failed\n");
+                exit(2);
+            }
         }
 
     }
