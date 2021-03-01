@@ -18,6 +18,7 @@ size_t MAX_LINE_LEN = 10000;
 // builtin commands
 #define EXIT_STR "exit"
 #define LIST_STR "listall"
+#define FG_STR "fg"
 #define EXIT_CMD 0
 #define UNKNOWN_CMD 99
 #define VALID_CMD 1
@@ -155,6 +156,11 @@ int run_command() {
     } else if (strcmp(tokens[0], LIST_STR) == 0) {
         listall(&bg_procs);
         return VALID_CMD;
+    } else if (strcmp(tokens[0], FG_STR) == 0) {
+        if (token_count > 1) {
+            int tpid = atoi(tokens[1]);
+            foreground(&bg_procs, tpid);
+        }
     } else {
         return handle_command();
     }

@@ -20,7 +20,7 @@ void listall(List *l) {
                 runner->status = FINISHED;
             }
 
-            if (runner->status == 0) {
+            if (runner->status == RUNNING) {
                 printf("%s with PID: %d Status: RUNNING\n", runner->name, runner->pid);
             } else {
                 printf("%s with PID: %d Status: FINISHED\n", runner->name, runner->pid);
@@ -29,6 +29,29 @@ void listall(List *l) {
         }
     }
 }
+
+void foreground(List *l, pid_t pid) {
+    int wait_ret;
+    int status;
+    if (l->head != NULL) {
+        Job * runner = l->head;
+        while (runner != NULL) {
+            if (runner == NULL) {
+                break;
+            }
+            if (runner->pid == pid) {
+                wait_ret = waitpid(runner->pid, &status, 0);
+                if (wait_ret < 0) {
+                    break;
+                }
+                return;
+            }
+            runner = runner->next;
+        }
+    }
+    printf("PID does not exist\n");
+}
+
 
 void insert(List *l, Job * j) {
     if (l->head == NULL) {
