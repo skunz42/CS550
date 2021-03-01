@@ -5,15 +5,22 @@
 #include <assert.h>
 #include <sys/wait.h>
 
+#include "jobs.h"
+
 //limits
 #define MAX_TOKENS 100
 #define MAX_STRING_LEN 100
+
+//PID status
+#define RUNNING 0
+#define FINISHED 1
 
 size_t MAX_LINE_LEN = 10000;
 
 
 // builtin commands
 #define EXIT_STR "exit"
+#define LIST_STR "listall"
 #define EXIT_CMD 0
 #define UNKNOWN_CMD 99
 #define VALID_CMD 1
@@ -23,6 +30,7 @@ FILE *fp; // file struct for stdin
 char **tokens;
 char *line;
 int token_count; // number of tokens in active command
+List bg_procs;
 
 void initialize()
 {
@@ -35,6 +43,8 @@ void initialize()
 
 	// open stdin as a file pointer 
 	assert( (fp = fdopen(STDIN_FILENO, "r")) != NULL);
+
+    bg_procs.head = NULL;
 
 }
 
@@ -94,14 +104,20 @@ int handle_command() {
         exit(1);
     }
 
+
     if (pid == 0) {
         //printf("Child: %s\n", tokens[0]);
+        
         int exec_ret = execvp(tokens[0], tokens);
         if (exec_ret < 0) {
             printf("exec failed\n");
             exit(1);
         }
-        //update status?
+
+        /*if (is_background) {
+            j->status = FINISHED;
+        }*/
+
         exit(99);
     }
 
@@ -115,17 +131,34 @@ int handle_command() {
                 printf("waitpid failed\n");
                 exit(2);
             }
+        } else {
+            Job * my_job = malloc(sizeof(Job));
+        
+            if (is_background) {
+                my_job->status = RUNNING;
+                my_job->pid = pid;
+                my_job->next = NULL;
+                strcpy(my_job->name, tokens[0]);
+                insert(&bg_procs, my_job);
+            }
         }
     }
 
-    return 1;
+    return VALID_CMD;
 
 }
 
 int run_command() {
 
 	if (strcmp( tokens[0], EXIT_STR ) == 0) {
+        free_list(&bg_procs);
+        free(line);
+        free(tokens);
+        fclose(fp);
 		return EXIT_CMD;
+    } else if (strcmp(tokens[0], LIST_STR) == 0) {
+        listall(&bg_procs);
+        return VALID_CMD;
     } else {
         return handle_command();
     }

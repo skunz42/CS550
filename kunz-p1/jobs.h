@@ -1,14 +1,16 @@
 #include <stdlib.h>
 
-struct job {
+typedef struct Job {
     char name[100];
     pid_t pid;
-    int status;
-    struct job* next;
-};
+    int status; // 0 = RUNNING, 1 = FINISHED
+    struct Job* next;
+} Job;
 
-struct list {
-    struct job* head;
-};
+typedef struct List {
+    Job* head;
+} List;
 
-void listall();
+void listall(List *l);
+void insert(List *l, Job* j);
+void free_list(List *l);
