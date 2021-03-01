@@ -7,7 +7,7 @@ int main() {
     while (i < 5) {
         i++;
         //printf("%d\n", i);
-        sleep(1);
+        sleep(2);
     }
     return 0;
 }

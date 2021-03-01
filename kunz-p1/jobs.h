@@ -1,9 +1,5 @@
 #include <stdlib.h>
 
-//PID status
-#define RUNNING 0
-#define FINISHED 1
-
 typedef struct Job {
     char name[100];
     pid_t pid;

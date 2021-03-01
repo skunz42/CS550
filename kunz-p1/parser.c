@@ -11,6 +11,9 @@
 #define MAX_TOKENS 100
 #define MAX_STRING_LEN 100
 
+//PID status
+#define RUNNING 0
+#define FINISHED 1
 
 size_t MAX_LINE_LEN = 10000;
 
@@ -110,7 +113,11 @@ int handle_command() {
             printf("exec failed\n");
             exit(1);
         }
-        
+
+        /*if (is_background) {
+            j->status = FINISHED;
+        }*/
+
         exit(99);
     }
 
@@ -126,7 +133,7 @@ int handle_command() {
             }
         } else {
             Job * my_job = malloc(sizeof(Job));
- 
+        
             if (is_background) {
                 my_job->status = RUNNING;
                 my_job->pid = pid;
@@ -134,9 +141,6 @@ int handle_command() {
                 strcpy(my_job->name, tokens[0]);
                 insert(&bg_procs, my_job);
             }
-
-            //printf("Starting wait\n");
-            
         }
     }
 
