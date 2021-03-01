@@ -20,7 +20,7 @@ void listall(List *l) {
                 runner->status = FINISHED;
             }
 
-            if (runner->status == FINISHED) {
+            if (runner->status == 0) {
                 printf("%s with PID: %d Status: RUNNING\n", runner->name, runner->pid);
             } else {
                 printf("%s with PID: %d Status: FINISHED\n", runner->name, runner->pid);

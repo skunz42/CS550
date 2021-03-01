@@ -32,14 +32,14 @@ List bg_procs;
 void initialize()
 {
 
-    // allocate space for the whole line
-    assert( (line = malloc(sizeof(char) * MAX_STRING_LEN)) != NULL);
+	// allocate space for the whole line
+	assert( (line = malloc(sizeof(char) * MAX_STRING_LEN)) != NULL);
 
-    // allocate space for individual tokens
-    assert( (tokens = malloc(sizeof(char*)*MAX_TOKENS)) != NULL);
+	// allocate space for individual tokens
+	assert( (tokens = malloc(sizeof(char*)*MAX_TOKENS)) != NULL);
 
-    // open stdin as a file pointer 
-    assert( (fp = fdopen(STDIN_FILENO, "r")) != NULL);
+	// open stdin as a file pointer 
+	assert( (fp = fdopen(STDIN_FILENO, "r")) != NULL);
 
     bg_procs.head = NULL;
 
@@ -47,27 +47,27 @@ void initialize()
 
 void tokenize (char * string)
 {
-    token_count = 0;
-    int size = MAX_TOKENS;
-    char *this_token;
+	token_count = 0;
+	int size = MAX_TOKENS;
+	char *this_token;
 
-    while ( (this_token = strsep( &string, " \t\v\f\n\r")) != NULL) {
+	while ( (this_token = strsep( &string, " \t\v\f\n\r")) != NULL) {
 
-        if (*this_token == '\0') continue;
+		if (*this_token == '\0') continue;
 
-        tokens[token_count] = this_token;
+		tokens[token_count] = this_token;
 
-        //printf("Token %d: %s\n", token_count, tokens[token_count]);
+		//printf("Token %d: %s\n", token_count, tokens[token_count]);
 
-        token_count++;
+		token_count++;
 
-        // if there are more tokens than space, reallocate more space
-        if(token_count >= size){
-            size*=2;
+		// if there are more tokens than space ,reallocate more space
+		if(token_count >= size){
+			size*=2;
 
-            assert ( (tokens = realloc(tokens, sizeof(char*) * size)) != NULL);
-        }
-    }
+			assert ( (tokens = realloc(tokens, sizeof(char*) * size)) != NULL);
+		}
+	}
 
     tokens[token_count] = NULL;
     //token_count++;
@@ -76,12 +76,12 @@ void tokenize (char * string)
 void read_command() 
 {
 
-    // getline will reallocate if input exceeds max length
-    assert( getline(&line, &MAX_LINE_LEN, fp) > -1); 
+	// getline will reallocate if input exceeds max length
+	assert( getline(&line, &MAX_LINE_LEN, fp) > -1); 
 
-    //printf("Shell read this line: %s\n", line);
+	//printf("Shell read this line: %s\n", line);
 
-    tokenize(line);
+	tokenize(line);
 }
 
 int handle_command() {
@@ -103,7 +103,8 @@ int handle_command() {
 
 
     if (pid == 0) {
-        // Child        
+        //printf("Child: %s\n", tokens[0]);
+        
         int exec_ret = execvp(tokens[0], tokens);
         if (exec_ret < 0) {
             printf("exec failed\n");
@@ -114,8 +115,9 @@ int handle_command() {
     }
 
     if (pid > 0) {
-        // Parent
+        //printf("Parent: %s\n", tokens[0]);
         if (!is_background) {
+            //printf("In fg\n");
             wait_ret = waitpid(pid, &status, 0);
 
             if (wait_ret < 0) {
@@ -133,6 +135,8 @@ int handle_command() {
                 insert(&bg_procs, my_job);
             }
 
+            //printf("Starting wait\n");
+            
         }
     }
 
@@ -142,12 +146,12 @@ int handle_command() {
 
 int run_command() {
 
-    if (strcmp( tokens[0], EXIT_STR ) == 0) {
+	if (strcmp( tokens[0], EXIT_STR ) == 0) {
         free_list(&bg_procs);
         free(line);
         free(tokens);
         fclose(fp);
-        return EXIT_CMD;
+		return EXIT_CMD;
     } else if (strcmp(tokens[0], LIST_STR) == 0) {
         listall(&bg_procs);
         return VALID_CMD;
@@ -155,21 +159,21 @@ int run_command() {
         return handle_command();
     }
 
-    return UNKNOWN_CMD;
+	return UNKNOWN_CMD;
 }
 
 int main()
 {
-    initialize();
+	initialize();
 
-    do {
-        printf("sh550> ");
-        read_command();
+	do {
+		printf("sh550> ");
+		read_command();
         if (token_count == 0) {
             tokens[0] = " ";
-        }       
-    } while( run_command() != EXIT_CMD );
+        }		
+	} while( run_command() != EXIT_CMD );
 
-    return 0;
+	return 0;
 }
 
