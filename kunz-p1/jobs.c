@@ -1,17 +1,30 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 #include "jobs.h"
 
 void listall(List *l) {
-    printf("List of background processes:\n");
+    int wait_ret;
+    int cstat;
+
+    printf("List of baickground processes:\n");
     if (l->head != NULL) {
         Job *runner = l->head;
         while (runner != NULL) {
             if (runner == NULL) {
                 break;
             }
-            printf("PID: %d\n", runner->pid);
+
+            if ((wait_ret = waitpid(runner->pid, &cstat, WNOHANG)) == -1) {
+                runner->status = FINISHED;
+            }
+
+            if (runner->status == 0) {
+                printf("%s with PID: %d Status: RUNNING\n", runner->name, runner->pid);
+            } else {
+                printf("%s with PID: %d Status: FINISHED\n", runner->name, runner->pid);
+            }
             runner = runner->next;
         }
     }
