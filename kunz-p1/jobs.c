@@ -8,7 +8,7 @@ void listall(List *l) {
     int wait_ret;
     int cstat;
 
-    printf("List of baickground processes:\n");
+    printf("List of background processes:\n");
     if (l->head != NULL) {
         Job *runner = l->head;
         while (runner != NULL) {
