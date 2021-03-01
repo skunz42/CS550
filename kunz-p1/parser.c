@@ -84,7 +84,7 @@ int handle_command() {
     int wait_ret;
     unsigned char is_background = 0;
 
-    if (tokens[token_count-1][0] == '&') {
+    if (token_count > 0 && tokens[token_count-1][0] == '&') {
         is_background = 1;
     }
 
@@ -101,13 +101,14 @@ int handle_command() {
             printf("exec failed\n");
             exit(1);
         }
+        //update status?
         exit(99);
     }
 
     if (pid > 0) {
         //printf("Parent: %s\n", tokens[0]);
         if (!is_background) {
-            printf("In fg\n");
+            //printf("In fg\n");
             wait_ret = waitpid(pid, &status, 0);
 
             if (wait_ret < 0) {
@@ -115,7 +116,6 @@ int handle_command() {
                 exit(2);
             }
         }
-
     }
 
     return 1;
@@ -140,7 +140,9 @@ int main()
 	do {
 		printf("sh550> ");
 		read_command();
-		
+        if (token_count == 0) {
+            tokens[0] = " ";
+        }		
 	} while( run_command() != EXIT_CMD );
 
 	return 0;
