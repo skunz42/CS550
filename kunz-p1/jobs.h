@@ -19,3 +19,4 @@ void listall(List *l);
 void insert(List *l, Job* j);
 void free_list(List *l);
 void foreground(List *l, pid_t pid);
+void check_finished(List *l);

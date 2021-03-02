@@ -30,6 +30,25 @@ void listall(List *l) {
     }
 }
 
+void check_finished(List *l) {
+    int wait_ret;
+    int status;
+
+    if (l->head != NULL) {
+        Job *runner = l->head;
+        while (runner != NULL) {
+            if (runner == NULL) {
+                break;
+            }        
+
+            if ((wait_ret = waitpid(runner->pid, &status, WNOHANG)) == -1) {
+                runner->status = FINISHED;
+            }
+            runner = runner->next;
+        }
+    }
+}
+
 void foreground(List *l, pid_t pid) {
     int wait_ret;
     int status;

@@ -17,7 +17,7 @@ size_t MAX_LINE_LEN = 10000;
 
 // builtin commands
 #define EXIT_STR "exit"
-#define LIST_STR "listall"
+#define LIST_STR "listjobs"
 #define FG_STR "fg"
 #define EXIT_CMD 0
 #define UNKNOWN_CMD 99
@@ -29,6 +29,14 @@ char **tokens;
 char *line;
 int token_count; // number of tokens in active command
 List bg_procs;
+
+
+/*** LIST FUNCTIONALITY ***/
+
+// See jobs.c
+
+/*** INPUT MANAGEMENT ***/
+
 
 void initialize()
 {
@@ -106,6 +114,10 @@ int handle_command() {
     if (pid == 0) {
         //printf("Child: %s\n", tokens[0]);
         
+        if (is_background) {
+            tokens[token_count-1] = NULL;
+        }
+        
         int exec_ret = execvp(tokens[0], tokens);
         if (exec_ret < 0) {
             printf("exec failed\n");
@@ -154,6 +166,7 @@ int run_command() {
         fclose(fp);
 		return EXIT_CMD;
     } else if (strcmp(tokens[0], LIST_STR) == 0) {
+        check_finished(&bg_procs);
         listall(&bg_procs);
         return VALID_CMD;
     } else if (strcmp(tokens[0], FG_STR) == 0) {
