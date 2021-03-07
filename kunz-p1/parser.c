@@ -122,7 +122,7 @@ int handle_command() {
 
         pipe_count = is_pipe(tokens, token_count);
         if (pipe_count) {
-            handle_pipe(tokens, token_count, pipe_count, is_background);
+            handle_all_pipes(tokens, token_count, pipe_count, is_background);
             exit(99);
         }
         
