@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 
 #include "jobs.h"
+#include "pipes.h"
 
 //limits
 #define MAX_TOKENS 100
@@ -99,6 +100,7 @@ int handle_command() {
     int status;
     int wait_ret;
     unsigned char is_background = 0;
+    int pipe_count = 0;
 
     if (token_count > 0 && tokens[token_count-1][0] == '&') {
         is_background = 1;
@@ -116,6 +118,12 @@ int handle_command() {
         
         if (is_background) {
             tokens[token_count-1] = NULL;
+        }
+
+        pipe_count = is_pipe(tokens, token_count);
+        if (pipe_count) {
+            handle_pipe(tokens, token_count, pipe_count, is_background);
+            exit(99);
         }
         
         int exec_ret = execvp(tokens[0], tokens);
