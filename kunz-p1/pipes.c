@@ -107,15 +107,15 @@ void handle_io(char **tokens, int curr_index, int token_count) {
 void handle_all_pipes(char **tokens, int token_count, int pipe_count, int is_background) {
     generate_order(tokens, token_count);
     //int last_pipe = 0;
-    for (int i = 0; i < token_count; i++) {
-        if (num_pipe == 0) {
+    if (num_pipe == 0) {
+        for (int i = 0; i < token_count; i++) {
             if (num_input > 0 || num_output > 0) {
                 if ((strcmp(tokens[i], "<") == 0 || strcmp(tokens[i], ">") == 0) && i != token_count-1) {
                     handle_io(tokens, i, token_count);
                 }
             }
-        } else {
-
         }
+    } else {
+        // if pipes, run each chunk of command recursively
     }
 }
