@@ -27,6 +27,8 @@ int infd;
 char * pipe_sep[100][100];
 int pipe_sep_size;
 
+int *pipes;
+
 int is_pipe(char **tokens, int token_count) {
     int ret = 0;
     for (int i = 0; i < token_count; i++) {
@@ -48,6 +50,10 @@ void generate_order(char **tokens, int token_count) {
         } else if (strcmp(tokens[i], "|") == 0) {
             num_pipe++;
         }
+    }
+    pipes = malloc(sizeof(int) * num_pipe);
+    for (int i = 0; i < num_pipe; i++) {
+        pipe(pipes + (2*i));
     }
 }
 
@@ -135,32 +141,47 @@ void handle_io(char **tokens, int curr_index, int token_count) {
     }
 }
 
-void handle_pipes() {
-    int pipes[2*num_pipe];
-    for (int i = 0; i < num_pipe; i++) {
-        pipe(pipes + (2*i));
-    }
+void handle_pipes(int cmd_num) {
+    //int pipes[2*num_pipe];
 
-    for (int i = 0; i < pipe_sep_size; i++) {
-        if (i%2 == 0) {
-            if (fork() == 0) {
-                dup2(pipes[2*i+1], 1);
-                //close_all_pipes(pipes);
-                for (int j = 0; j < 2*num_pipe; j++) {
-                    close(pipes[j]);
-                }
-                execvp(pipe_sep[2*i][0], pipe_sep[2*i]);
-            } else {
-                dup2(pipes[2*i], 0);
-                //close_all_pipes(pipes);
-                for (int j = 0; j < 2*num_pipe; j++) {
-                    close(pipes[j]);
-                }
-                execvp(pipe_sep[2*i+1][0], pipe_sep[2*i+1]);
+    /*if (fork() == 0) {
+        dup2(pipes[cmd_num+1], 1);
+        for (int j = 0; j < 2*num_pipe; j++) {
+            close(pipes[j]);
+        }
+        execvp(pipe_sep[cmd_num][0], pipe_sep[cmd_num]);
+    } else {
+        
+    }*/
+
+    if (cmd_num == 0) {
+        if (fork() == 0) {
+            dup2(pipes[cmd_num+1], 1);
+            for (int j = 0; j < 2*num_pipe; j++) {
+                close(pipes[j]);
             }
+            execvp(pipe_sep[cmd_num][0], pipe_sep[cmd_num]);
+        } else {
+            handle_pipes(cmd_num+1);
+        }
+    } else if (cmd_num == pipe_sep_size-1) {
+        dup2(pipes[2*num_pipe-2], 0);
+        for (int j = 0; j < 2*num_pipe; j++) {
+            close(pipes[j]);
+        }
+        execvp(pipe_sep[cmd_num][0], pipe_sep[cmd_num]);
+    } else {
+        if (fork() == 0) {
+            dup2(pipes[2*cmd_num-2], 0);
+            dup2(pipes[2*cmd_num+1], 1);
+            for (int j = 0; j < 2*num_pipe; j++) {
+                close(pipes[j]);
+            }
+            execvp(pipe_sep[cmd_num][0], pipe_sep[cmd_num]);
+        } else {
+            handle_pipes(cmd_num+1);
         }
     }
-    
     /*if (fork() == 0) {
         dup2(pipes[1], 1);
         close(pipes[0]);
@@ -187,6 +208,6 @@ void handle_all_pipes(char **tokens, int token_count, int pipe_count, int is_bac
     } else {
         // if pipes, run each chunk of command recursively
         generate_pipe_sep(tokens, token_count);
-        handle_pipes();
+        handle_pipes(0);
     }
 }
