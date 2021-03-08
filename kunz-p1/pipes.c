@@ -28,6 +28,11 @@ char * pipe_sep[100][100];
 int pipe_sep_size;
 
 int *pipes;
+char * saved_ifn;
+char * saved_ofn;
+
+int infdp;
+int outfdp;
 
 int is_pipe(char **tokens, int token_count) {
     int ret = 0;
@@ -156,6 +161,26 @@ void handle_pipes(int cmd_num) {
 
     if (cmd_num == 0) {
         if (fork() == 0) {
+            if (num_input) {
+                for (int i = 0; i < 100; i++) {
+                    if (pipe_sep[cmd_num][i] == NULL) {
+                        break;
+                    } else if (strcmp(pipe_sep[cmd_num][i], "<") == 0) {
+                        saved_ifn = pipe_sep[cmd_num][i+1];
+                        infdp = open(saved_ifn, O_RDONLY);
+                        //pipes[0] = infdp;
+                        //pipe_sep[cmd_num][i] = pipe_sep[cmd_num][i+1];
+                        //pipe(pipes);
+                        pipe_sep[cmd_num][i] = NULL;
+                        pipe_sep[cmd_num][i+1] = NULL;
+                        break;
+                    }
+                }
+            }
+            if (num_input) {
+                dup2(infdp, 0);
+                close(infdp);
+            }
             dup2(pipes[cmd_num+1], 1);
             for (int j = 0; j < 2*num_pipe; j++) {
                 close(pipes[j]);
@@ -165,7 +190,28 @@ void handle_pipes(int cmd_num) {
             handle_pipes(cmd_num+1);
         }
     } else if (cmd_num == pipe_sep_size-1) {
+        if (num_output) {
+            for (int i = 0; i < 100; i++) {
+                if (pipe_sep[cmd_num][i] == NULL) {
+                    break;
+                } else if (strcmp(pipe_sep[cmd_num][i], ">") == 0) {
+                    saved_ofn = pipe_sep[cmd_num][i+1];
+                    outfdp = open(saved_ofn, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+                    //pipes[2*num_pipe-1] = outfdp;
+                    //pipe_sep[cmd_num][i] = pipe_sep[cmd_num][i+1];
+                    //pipe(pipes);
+                    pipe_sep[cmd_num][i] = NULL;
+                    pipe_sep[cmd_num][i+1] = NULL;
+                    break;
+                }
+            }
+        }
+
         dup2(pipes[2*num_pipe-2], 0);
+        if (num_output) {
+            dup2(outfdp, 1);
+            close(outfdp);
+        }
         for (int j = 0; j < 2*num_pipe; j++) {
             close(pipes[j]);
         }
@@ -182,17 +228,6 @@ void handle_pipes(int cmd_num) {
             handle_pipes(cmd_num+1);
         }
     }
-    /*if (fork() == 0) {
-        dup2(pipes[1], 1);
-        close(pipes[0]);
-        close(pipes[1]);
-        execvp(pipe_sep[0][0], pipe_sep[0]);
-    } else {
-        dup2(pipes[0], 0);
-        close(pipes[0]);
-        close(pipes[1]);
-        execvp(pipe_sep[1][0], pipe_sep[1]);
-    }*/
 }
 
 void handle_all_pipes(char **tokens, int token_count, int pipe_count, int is_background) {
