@@ -65,7 +65,7 @@ void generate_pipe_sep(char **tokens, int token_count) {
         }
     }
     
-    pipe_sep_size = pipe_sep_idx;
+    pipe_sep_size = pipe_sep_idx+1;
 
     /*for (int i = 0; i <= pipe_sep_size; i++) {
         for (int j = 0; j < 100; j++) {
@@ -137,11 +137,31 @@ void handle_io(char **tokens, int curr_index, int token_count) {
 
 void handle_pipes() {
     int pipes[2*num_pipe];
-    /*for (int i = 0; i < num_pipe/2; i++) {
+    for (int i = 0; i < num_pipe; i++) {
         pipe(pipes + (2*i));
-    }*/
-    pipe(pipes);
-    if (fork() == 0) {
+    }
+
+    for (int i = 0; i < pipe_sep_size; i++) {
+        if (i%2 == 0) {
+            if (fork() == 0) {
+                dup2(pipes[2*i+1], 1);
+                //close_all_pipes(pipes);
+                for (int j = 0; j < 2*num_pipe; j++) {
+                    close(pipes[j]);
+                }
+                execvp(pipe_sep[2*i][0], pipe_sep[2*i]);
+            } else {
+                dup2(pipes[2*i], 0);
+                //close_all_pipes(pipes);
+                for (int j = 0; j < 2*num_pipe; j++) {
+                    close(pipes[j]);
+                }
+                execvp(pipe_sep[2*i+1][0], pipe_sep[2*i+1]);
+            }
+        }
+    }
+    
+    /*if (fork() == 0) {
         dup2(pipes[1], 1);
         close(pipes[0]);
         close(pipes[1]);
@@ -151,7 +171,7 @@ void handle_pipes() {
         close(pipes[0]);
         close(pipes[1]);
         execvp(pipe_sep[1][0], pipe_sep[1]);
-    }
+    }*/
 }
 
 void handle_all_pipes(char **tokens, int token_count, int pipe_count, int is_background) {
