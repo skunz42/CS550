@@ -24,6 +24,9 @@ char * io_cmd[100];
 int outfd;
 int infd;
 
+char * pipe_sep[100][100];
+int pipe_sep_size;
+
 int is_pipe(char **tokens, int token_count) {
     int ret = 0;
     for (int i = 0; i < token_count; i++) {
@@ -46,6 +49,34 @@ void generate_order(char **tokens, int token_count) {
             num_pipe++;
         }
     }
+}
+
+void generate_pipe_sep(char **tokens, int token_count) {
+    int pipe_sep_idx = 0;
+    int curr_idx = 0;
+    for (int i = 0; i < token_count; i++) {
+        if (strcmp(tokens[i], "|") == 0) {
+            pipe_sep[pipe_sep_idx][curr_idx] = NULL;
+            pipe_sep_idx++;
+            curr_idx = 0;
+        } else {
+            pipe_sep[pipe_sep_idx][curr_idx] = tokens[i];
+            curr_idx++;
+        }
+    }
+    
+    pipe_sep_size = pipe_sep_idx;
+
+    /*for (int i = 0; i <= pipe_sep_size; i++) {
+        for (int j = 0; j < 100; j++) {
+            if (pipe_sep[i][j] == NULL) {
+                break;
+            } else {
+                printf("%s ", pipe_sep[i][j]);
+            }
+        }
+        printf("\n");
+    }*/
 }
 
 void handle_io(char **tokens, int curr_index, int token_count) {
@@ -104,9 +135,27 @@ void handle_io(char **tokens, int curr_index, int token_count) {
     }
 }
 
+void handle_pipes() {
+    int pipes[2*num_pipe];
+    /*for (int i = 0; i < num_pipe/2; i++) {
+        pipe(pipes + (2*i));
+    }*/
+    pipe(pipes);
+    if (fork() == 0) {
+        dup2(pipes[1], 1);
+        close(pipes[0]);
+        close(pipes[1]);
+        execvp(pipe_sep[0][0], pipe_sep[0]);
+    } else {
+        dup2(pipes[0], 0);
+        close(pipes[0]);
+        close(pipes[1]);
+        execvp(pipe_sep[1][0], pipe_sep[1]);
+    }
+}
+
 void handle_all_pipes(char **tokens, int token_count, int pipe_count, int is_background) {
     generate_order(tokens, token_count);
-    //int last_pipe = 0;
     if (num_pipe == 0) {
         for (int i = 0; i < token_count; i++) {
             if (num_input > 0 || num_output > 0) {
@@ -117,5 +166,7 @@ void handle_all_pipes(char **tokens, int token_count, int pipe_count, int is_bac
         }
     } else {
         // if pipes, run each chunk of command recursively
+        generate_pipe_sep(tokens, token_count);
+        handle_pipes();
     }
 }

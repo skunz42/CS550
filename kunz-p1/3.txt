@@ -1,3 +1,0 @@
-jobs.c
-jobs.h
-jobs.o
