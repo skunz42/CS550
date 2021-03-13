@@ -21,6 +21,7 @@ size_t MAX_LINE_LEN = 10000;
 #define EXIT_STR "exit"
 #define LIST_STR "listjobs"
 #define FG_STR "fg"
+#define KILL_STR "kill"
 #define EXIT_CMD 0
 #define UNKNOWN_CMD 99
 #define VALID_CMD 1
@@ -100,6 +101,16 @@ void int_handler(int sig) {
     kill(pid, sig);
 }
 
+void kill_proc() {
+    if (token_count >= 2) {
+        int tpid = atoi(tokens[1]);
+        int ret = kill(tpid, SIGINT);
+        if (ret < 0) {
+            printf("PID not found\n");
+            return;
+        }
+    }
+}
 
 int handle_command() {
 
@@ -192,6 +203,9 @@ int run_command() {
             int tpid = atoi(tokens[1]);
             foreground(&bg_procs, tpid);
         }
+    } else if (strcmp(tokens[0], KILL_STR) == 0) {
+        kill_proc();
+        return VALID_CMD;
     } else {
         return handle_command();
     }
