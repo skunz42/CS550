@@ -77,19 +77,9 @@ void generate_pipe_sep(char **tokens, int token_count) {
     }
     
     pipe_sep_size = pipe_sep_idx+1;
-
-    /*for (int i = 0; i <= pipe_sep_size; i++) {
-        for (int j = 0; j < 100; j++) {
-            if (pipe_sep[i][j] == NULL) {
-                break;
-            } else {
-                printf("%s ", pipe_sep[i][j]);
-            }
-        }
-        printf("\n");
-    }*/
 }
 
+/** HANDLES JUST REDIRECTION **/
 void handle_io(char **tokens, int curr_index, int token_count) {
     if (io_cmd[0] == NULL) {
         int slice_i = 0;
@@ -146,19 +136,8 @@ void handle_io(char **tokens, int curr_index, int token_count) {
     }
 }
 
+/** HANDLES PIPES + REDIRECTION **/
 void handle_pipes(int cmd_num) {
-    //int pipes[2*num_pipe];
-
-    /*if (fork() == 0) {
-        dup2(pipes[cmd_num+1], 1);
-        for (int j = 0; j < 2*num_pipe; j++) {
-            close(pipes[j]);
-        }
-        execvp(pipe_sep[cmd_num][0], pipe_sep[cmd_num]);
-    } else {
-        
-    }*/
-
     if (cmd_num == 0) {
         if (fork() == 0) {
             if (num_input) {

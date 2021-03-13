@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 #include <assert.h>
 #include <sys/wait.h>
 
@@ -30,6 +31,7 @@ char **tokens;
 char *line;
 int token_count; // number of tokens in active command
 List bg_procs;
+pid_t pid; // pid for signal handling
 
 
 /*** LIST FUNCTIONALITY ***/
@@ -94,9 +96,13 @@ void read_command()
 	tokenize(line);
 }
 
+void int_handler(int sig) {
+    kill(pid, sig);
+}
+
+
 int handle_command() {
 
-    pid_t pid;
     int status;
     int wait_ret;
     unsigned char is_background = 0;
@@ -120,8 +126,11 @@ int handle_command() {
             tokens[token_count-1] = NULL;
         }
 
-        pipe_count = is_pipe(tokens, token_count);
-        if (pipe_count) {
+        pipe_count = is_pipe(tokens, token_count-1);
+        if (pipe_count && is_background) {
+            handle_all_pipes(tokens, token_count-1, pipe_count, is_background);
+            exit(99);
+        } else if (pipe_count) {
             handle_all_pipes(tokens, token_count, pipe_count, is_background);
             exit(99);
         }
@@ -137,6 +146,7 @@ int handle_command() {
 
     if (pid > 0) {
         //printf("Parent: %s\n", tokens[0]);
+        signal(SIGINT, int_handler);
         if (!is_background) {
             //printf("In fg\n");
             wait_ret = waitpid(pid, &status, 0);
