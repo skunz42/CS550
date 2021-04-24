@@ -28,8 +28,8 @@ static ssize_t read_dev(struct file *file, char __user *buf, size_t len, loff_t 
     int ec = 0;
 
     for_each_process(task_list) {
-        printk(KERN_INFO "PID: %d, PPID: %d, CPU: %d, STATE: %ld\n", task_list->pid, task_list->parent->pid, task_list->cpu, task_list->state);
-        sprintf(glob_buf + strlen(glob_buf), "PID %d, PPID %d CPU: %d STATE %ld\n", task_list->pid, task_list->parent->pid, task_list->cpu, task_list->state);
+        printk(KERN_INFO "PID: %d, PPID: %d, CPU: %d, STATE: %ld\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_list->state);
+        sprintf(glob_buf + strlen(glob_buf), "PID %d, PPID %d CPU: %d STATE %ld\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_list->state);
     }
 
     ec = copy_to_user(buf, glob_buf, strlen(glob_buf));
