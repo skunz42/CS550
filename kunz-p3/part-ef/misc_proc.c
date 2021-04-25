@@ -21,19 +21,70 @@ static int close_dev(struct inode *inodep, struct file *filp)
     return 0;
 }
 
+char * get_state(long int state_num) {
+   switch (state_num) {
+       case 0x0:
+            return "TASK_RUNNING";
+       case 0x1:
+            return "TASK_INTERRUPTIBLE";
+       case 0x2:
+            return "TASK_UNINTERRUPTIBLE";
+       case 0x4:
+            return "__TASK_STOPPED";
+       case 0x8:
+            return "__TASK_TRACED";
+       case 0x10:
+            return "EXIT_DEAD";
+       case 0x20:
+            return "EXIT_ZOMBIE";
+       case 0x40:
+            return "TASK_PARKED";
+       case 0x80:
+            return "TASK_DEAD";
+       case 0x100:
+            return "TASK_WAKEKILL";
+       case 0x200:
+            return "TASK_WAKING";
+       case 0x400:
+            return "TASK_NOLOAD";
+       case 0x800:
+            return "TASK_NEW";
+       case 0x1000:
+            return "TASK_STATE_MAX";
+       case (0x20 | 0x10):
+            return "EXIT_ZOMBIE, EXIT_DEAD";
+       case (0x100 | 0x2):
+            return "TASK_WAKEKILL, TASK_UNINTERRUPTIBLE";
+       case (0x100 | 0x4):
+            return "TASK_WAKEKILL, __TASK_STOPPED";
+       case (0x100 | 0x8):
+            return "TASK_WAKEKILL, __TASK_TRACED";
+       case (0x2 | 0x400):
+            return "TASK_UNINTERRUPTIBLE, TASK_NOLOAD";
+       case (0x2 | 0x1):
+            return "TASK_INTERRUPTIBLE, TASK_UNINTERRUPTIBLE";
+       case (0x0 | 0x1 | 0x2 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40):
+            return "TASK_RUNNING, TASK_INTERRUPTIBLE, TASK_UNINTERRUPTIBLE, TASK_STOPPED, __TASK_TRACED, EXIT_DEAD, EXIT_ZOMBIE, TASK_PARKED";
+       default:
+            printk(KERN_ALERT "%ld\n", state_num);
+            return "UNKNOWN_STATE";
+   }
+}
+
 static ssize_t read_dev(struct file *file, char __user *buf, size_t len, loff_t *ppos)
 {
     struct task_struct* task_list;
+    char glob_buf[10000];
+    int ret = 0;
+    char * task_state;
 
     for_each_process(task_list) {
-        printk(KERN_INFO "PID: %d, PPID: %d, CPU: %d, STATE: %ld\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_list->state);
-        //sprintf(glob_buf, "PID %d, PPID %d CPU: %d STATE %ld\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_list->state);
+        task_state = get_state(task_list->state);
+        printk(KERN_INFO "PID=%d, PPID=%d, CPU=%d, STATE=%s\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_state);
+        sprintf(glob_buf + strlen(glob_buf), "PID=%d, PPID=%d CPU=%d STATE=%s\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_state);
     }
-        char glob_buf[100];
-        sprintf(glob_buf, "Hello\n");
-        copy_to_user(buf, glob_buf, strlen(glob_buf));
-
-    return 0;
+    copy_to_user(buf, glob_buf, strlen(glob_buf)+1);
+    return ret;
 }
 
 static const struct file_operations sample_fops = {
