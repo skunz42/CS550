@@ -1,30 +1,13 @@
-# To build modules outside of the kernel tree, we run "make"
-# in the kernel source tree; the Makefile there then includes this
-# Makefile once again.
+obj-m += misc_proc.o
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
 
-# This conditional selects whether we are being included from the
-# kernel Makefile or not.
-ifeq ($(KERNELRELEASE),)
+CC := $(CROSS_COMPILE)gcc
 
-	# Assume the source tree is where the running kernel was built
-	# You should set KERNELDIR in the environment if it's elsewhere
-	KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-
-	# The current directory is passed to sub-makes as argument
-	PWD := $(shell pwd)
-
-modules:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
-
-modules_install:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules_install
-
+all:
+		$(MAKE) -C $(KDIR) M=${shell pwd} modules
+		$(CC) user_proc_list.c -o user_proc_list
+        
 clean:
-	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions
-
-.PHONY: modules modules_install clean
-
-else
-	# called from kernel build system: just declare what our modules are
-	obj-m := misc_proc.o misc_proc.o 
-endif
+		-$(MAKE) -C $(KDIR) M=${shell pwd} clean || true
+		-rm *.o *.ko *.mod.{c,o} modules.order Module.symvers user_proc_list || true

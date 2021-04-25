@@ -8,7 +8,6 @@
 
 MODULE_LICENSE("Dual BSD/GPL");
 
-static char glob_buf[10000] = {0};
 
 static int open_dev(struct inode *inode, struct file *file)
 {
@@ -25,15 +24,16 @@ static int close_dev(struct inode *inodep, struct file *filp)
 static ssize_t read_dev(struct file *file, char __user *buf, size_t len, loff_t *ppos)
 {
     struct task_struct* task_list;
-    int ec = 0;
 
     for_each_process(task_list) {
         printk(KERN_INFO "PID: %d, PPID: %d, CPU: %d, STATE: %ld\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_list->state);
-        sprintf(glob_buf + strlen(glob_buf), "PID %d, PPID %d CPU: %d STATE %ld\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_list->state);
+        //sprintf(glob_buf, "PID %d, PPID %d CPU: %d STATE %ld\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_list->state);
     }
+        char glob_buf[100];
+        sprintf(glob_buf, "Hello\n");
+        copy_to_user(buf, glob_buf, strlen(glob_buf));
 
-    ec = copy_to_user(buf, glob_buf, strlen(glob_buf));
-    return ec;
+    return 0;
 }
 
 static const struct file_operations sample_fops = {
@@ -60,7 +60,7 @@ static int __init misc_init(void)
         return error;
     }
 
-    pr_info("I'm in\n");
+    pr_info("Initializing process list\n");
     return 0;
 }
 
@@ -69,3 +69,6 @@ static void __exit misc_exit(void)
     misc_deregister(&sample_device);
     pr_info("I'm out\n");
 }
+
+module_init(misc_init);
+module_exit(misc_exit);
