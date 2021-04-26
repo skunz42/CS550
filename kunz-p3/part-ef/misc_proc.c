@@ -8,6 +8,7 @@
 
 MODULE_LICENSE("Dual BSD/GPL");
 
+#define BUFFER_SIZE 10000
 
 static int open_dev(struct inode *inode, struct file *file)
 {
@@ -74,14 +75,14 @@ char * get_state(long int state_num) {
 static ssize_t read_dev(struct file *file, char __user *buf, size_t len, loff_t *ppos)
 {
     struct task_struct* task_list;
-    char glob_buf[10000];
+    char glob_buf[BUFFER_SIZE];
     int ret = 0;
     char * task_state;
 
     for_each_process(task_list) {
         task_state = get_state(task_list->state);
         printk(KERN_INFO "PID=%d, PPID=%d, CPU=%d, STATE=%s\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_state);
-        sprintf(glob_buf + strlen(glob_buf), "PID=%d, PPID=%d CPU=%d STATE=%s\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_state);
+        sprintf(glob_buf + strlen(glob_buf), "PID=%d PPID=%d CPU=%d STATE=%s\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_state);
     }
     copy_to_user(buf, glob_buf, strlen(glob_buf)+1);
     return ret;

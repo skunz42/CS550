@@ -10,7 +10,8 @@ CC := $(CROSS_COMPILE)gcc
 
 all:
 		$(MAKE) -C $(KDIR) M=${shell pwd} modules
+		$(CC) test_driver.c -o test_driver
         
 clean:
 		-$(MAKE) -C $(KDIR) M=${shell pwd} clean || true
-		-rm *.o *.ko *.mod.{c,o} modules.order Module.symvers || true
+		-rm *.o *.ko *.mod.{c,o} modules.order Module.symvers test_driver || true
