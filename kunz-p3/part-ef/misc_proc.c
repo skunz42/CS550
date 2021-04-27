@@ -11,8 +11,8 @@
 
 MODULE_LICENSE("Dual BSD/GPL");
 
-proc_node *head = NULL;
-proc_node *read_runner = NULL;
+proc_node *head;
+proc_node *read_runner;
 
 void insert_proc(proc_node *entry);
 void print_list(void);
@@ -45,20 +45,21 @@ void print_list(void) {
 }
 
 void free_list(void) {
-    proc_node *runner = head;
-    proc_node *next;
-    while (runner != NULL) {
-        next = runner->next;
-        kfree(runner);
-        runner = next;
+    proc_node *tmp;
+    while (head != NULL) {
+        tmp = head;
+        head = head->next;
+        kfree(head);
     }
-    head = NULL;
 }
 
 static int open_dev(struct inode *inode, struct file *file)
 {
     struct task_struct* task_list;
     pr_info("Opening device...\n");
+
+    head = NULL;
+    read_runner = NULL;
 
     for_each_process(task_list) {
         proc_node *entry = (proc_node*)kmalloc(BUFFER_SIZE, GFP_KERNEL);
@@ -76,7 +77,7 @@ static int open_dev(struct inode *inode, struct file *file)
 static int close_dev(struct inode *inodep, struct file *filp)
 {
     pr_info("Closing device...\n");
-    free_list();
+    //free_list();
     return 0;
 }
 
