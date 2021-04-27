@@ -5,87 +5,102 @@
 #include <linux/miscdevice.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
+#include <linux/slab.h>
+
+#include "proc_struct.h"
 
 MODULE_LICENSE("Dual BSD/GPL");
 
-#define BUFFER_SIZE 10000
+proc_node *head = NULL;
+proc_node *read_runner = NULL;
+
+void insert_proc(proc_node *entry);
+void print_list(void);
+void free_list(void);
+
+void insert_proc(proc_node *entry) {
+    if (head == NULL) {
+        head = entry;
+        read_runner = head;
+    } else {
+        proc_node *runner = head;
+        while (runner != NULL) {
+            if (runner->next == NULL) {
+                runner->next = entry;
+                break;
+            }
+            runner = runner->next;
+        }
+    }
+}
+
+void print_list(void) {
+    if (head != NULL) {
+        proc_node *runner = head;
+        while (runner != NULL) {
+            pr_info("%d\n", runner->pid);
+            runner = runner->next;
+        }
+    }
+}
+
+void free_list(void) {
+    proc_node *runner = head;
+    proc_node *next;
+    while (runner != NULL) {
+        next = runner->next;
+        kfree(runner);
+        runner = next;
+    }
+    head = NULL;
+}
 
 static int open_dev(struct inode *inode, struct file *file)
 {
+    struct task_struct* task_list;
     pr_info("Opening device...\n");
+
+    for_each_process(task_list) {
+        proc_node *entry = (proc_node*)kmalloc(BUFFER_SIZE, GFP_KERNEL);
+        entry->pid = task_list->pid;
+        entry->ppid = task_list->parent->pid;
+        entry->cpu = task_cpu(task_list);
+        entry->state = task_list->state;
+        entry->next = NULL;
+        printk(KERN_INFO "PID=%d, PPID=%d, CPU=%d, STATE=%ld\n", entry->pid, entry->ppid, entry->cpu, entry->state);
+        insert_proc(entry);
+    }
     return 0;
 }
 
 static int close_dev(struct inode *inodep, struct file *filp)
 {
     pr_info("Closing device...\n");
+    free_list();
     return 0;
-}
-
-char * get_state(long int state_num) {
-   switch (state_num) {
-       case 0x0:
-            return "TASK_RUNNING";
-       case 0x1:
-            return "TASK_INTERRUPTIBLE";
-       case 0x2:
-            return "TASK_UNINTERRUPTIBLE";
-       case 0x4:
-            return "__TASK_STOPPED";
-       case 0x8:
-            return "__TASK_TRACED";
-       case 0x10:
-            return "EXIT_DEAD";
-       case 0x20:
-            return "EXIT_ZOMBIE";
-       case 0x40:
-            return "TASK_PARKED";
-       case 0x80:
-            return "TASK_DEAD";
-       case 0x100:
-            return "TASK_WAKEKILL";
-       case 0x200:
-            return "TASK_WAKING";
-       case 0x400:
-            return "TASK_NOLOAD";
-       case 0x800:
-            return "TASK_NEW";
-       case 0x1000:
-            return "TASK_STATE_MAX";
-       case (0x20 | 0x10):
-            return "EXIT_ZOMBIE, EXIT_DEAD";
-       case (0x100 | 0x2):
-            return "TASK_WAKEKILL, TASK_UNINTERRUPTIBLE";
-       case (0x100 | 0x4):
-            return "TASK_WAKEKILL, __TASK_STOPPED";
-       case (0x100 | 0x8):
-            return "TASK_WAKEKILL, __TASK_TRACED";
-       case (0x2 | 0x400):
-            return "TASK_UNINTERRUPTIBLE, TASK_NOLOAD";
-       case (0x2 | 0x1):
-            return "TASK_INTERRUPTIBLE, TASK_UNINTERRUPTIBLE";
-       case (0x0 | 0x1 | 0x2 | 0x4 | 0x8 | 0x10 | 0x20 | 0x40):
-            return "TASK_RUNNING, TASK_INTERRUPTIBLE, TASK_UNINTERRUPTIBLE, TASK_STOPPED, __TASK_TRACED, EXIT_DEAD, EXIT_ZOMBIE, TASK_PARKED";
-       default:
-            printk(KERN_ALERT "%ld\n", state_num);
-            return "UNKNOWN_STATE";
-   }
 }
 
 static ssize_t read_dev(struct file *file, char __user *buf, size_t len, loff_t *ppos)
 {
-    struct task_struct* task_list;
-    char glob_buf[BUFFER_SIZE];
-    int ret = 0;
-    char * task_state;
-
-    for_each_process(task_list) {
-        task_state = get_state(task_list->state);
-        printk(KERN_INFO "PID=%d, PPID=%d, CPU=%d, STATE=%s\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_state);
-        sprintf(glob_buf + strlen(glob_buf), "PID=%d PPID=%d CPU=%d STATE=%s\n", task_list->pid, task_list->parent->pid, task_cpu(task_list), task_state);
+    char *glob_buf;
+    int ec;
+    if (len < BUFFER_SIZE) {
+        pr_info("need to request more bytes\n");
+        return -1;
     }
-    copy_to_user(buf, glob_buf, strlen(glob_buf)+1);
-    return ret;
+    if (read_runner == NULL) {
+        pr_info("got to end of list\n");
+        read_runner = head;
+        return 0;
+    }
+    glob_buf = (char *)(read_runner);
+    ec = copy_to_user(buf, glob_buf, BUFFER_SIZE);
+    if (ec != 0) {
+        pr_info("errors on copy_to_user\n");
+        return -1;
+    }
+    read_runner = read_runner->next;
+    return BUFFER_SIZE;
 }
 
 static const struct file_operations sample_fops = {
